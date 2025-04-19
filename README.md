@@ -1,4 +1,5 @@
 # Devops Project: video-converter
+
 Converting mp4 videos to mp3 in a microservices architecture.
 
 ## Architecture
@@ -40,33 +41,36 @@ Follow these steps to deploy your microservice application:
 3. **Create Queues in RabbitMQ:** Before deploying the `converter-module`, create two queues in RabbitMQ: `mp3` and `video`.
 
 4. **Deploy Microservices:**
+
    - **auth-server:** Navigate to the `auth-server` manifest folder and apply the configuration.
    - **gateway-server:** Deploy the `gateway-server`.
    - **converter-module:** Deploy the `converter-module`. Make sure to provide your email and password in `converter/manifest/secret.yaml`.
    - **notification-server:** Configure email for notifications and two-factor authentication (2FA).
 
 5. **Application Validation:** Verify the status of all components by running:
+
    ```bash
    kubectl get all
    ```
 
-6. **Destroying the Infrastructure** 
-
+6. **Destroying the Infrastructure**
 
 ### Low Level Steps
 
 #### Cluster Creation
 
 1. **Log in to AWS Console:**
+
    - Access the AWS Management Console with your AWS account credentials.
 
 2. **Create eksCluster IAM Role**
+
    - Follow the steps mentioned in [this](https://docs.aws.amazon.com/eks/latest/userguide/service_IAM_role.html) documentation using root user
    - After creating it will look like this:
 
-   <p align="center">
-  <img src="./Project documentation/ekscluster_role.png" width="600" title="ekscluster_role" alt="ekscluster_role">
-  </p>
+    <p align="center">
+   <img src="./Project documentation/ekscluster_role.png" width="600" title="ekscluster_role" alt="ekscluster_role">
+   </p>
 
    - Please attach `AmazonEKS_CNI_Policy` explicitly if it is not attached by default
 
@@ -75,16 +79,18 @@ Follow these steps to deploy your microservice application:
    - Please note that you do NOT need to configure any VPC CNI policy mentioned after step 5.e under Creating the Amazon EKS node IAM role
    - Simply attach the following policies to your role once you have created `AmazonEKS_CNI_Policy` , `AmazonEBSCSIDriverPolicy` , `AmazonEC2ContainerRegistryReadOnly`
      incase it is not attached by default
-   - Your AmazonEKSNodeRole will look like this: 
+   - Your AmazonEKSNodeRole will look like this:
 
 <p align="center">
   <img src="./Project documentation/node_iam.png" width="600" title="Node_IAM" alt="Node_IAM">
   </p>
 
 4. **Open EKS Dashboard:**
+
    - Navigate to the Amazon EKS service from the AWS Console dashboard.
 
 5. **Create EKS Cluster:**
+
    - Click "Create cluster."
    - Choose a name for your cluster.
    - Configure networking settings (VPC, subnets).
@@ -92,6 +98,7 @@ Follow these steps to deploy your microservice application:
    - Review and create the cluster.
 
 6. **Cluster Creation:**
+
    - Wait for the cluster to provision, which may take several minutes.
 
 7. **Cluster Ready:**
@@ -114,6 +121,7 @@ Follow these steps to deploy your microservice application:
   </p>
 
 #### Enable EBS CSI Addon
+
 1. enable addon `ebs csi` this is for enabling pvcs once cluster is created
 
 <p align="center">
@@ -132,7 +140,6 @@ Follow these steps to deploy your microservice application:
 ### Commands
 
 Here are some essential Kubernetes commands for managing your deployment:
-
 
 ### MongoDB
 
@@ -160,6 +167,7 @@ helm install postgres .
 ```
 
 Connect to the Postgres database and copy all the queries from the "init.sql" file.
+
 ```
 psql 'postgres://<username>:<pwd>@<nodeip>:30003/authdb'
 ```
@@ -179,18 +187,21 @@ Ensure you have created two queues in RabbitMQ named `mp3` and `video`. To creat
 ### Apply the manifest file for each microservice:
 
 - **Auth Service:**
+
   ```
   cd auth-service/manifest
   kubectl apply -f .
   ```
 
 - **Gateway Service:**
+
   ```
   cd gateway-service/manifest
   kubectl apply -f .
   ```
 
 - **Converter Service:**
+
   ```
   cd converter-service/manifest
   kubectl apply -f .
@@ -211,8 +222,6 @@ kubectl get all
 ```
 
 ### Notification Configuration
-
-
 
 For configuring email notifications and two-factor authentication (2FA), follow these steps:
 
@@ -237,24 +246,27 @@ Run the application through the following API calls:
 # API Definition
 
 - **Login Endpoint**
+
   ```http request
   POST http://nodeIP:30002/login
   ```
 
   ```console
   curl -X POST http://nodeIP:30002/login -u <email>:<password>
-  ``` 
+  ```
+
   Expected output: success!
 
 - **Upload Endpoint**
+
   ```http request
   POST http://nodeIP:30002/upload
   ```
 
   ```console
    curl -X POST -F 'file=@./video.mp4' -H 'Authorization: Bearer <JWT Token>' http://nodeIP:30002/upload
-  ``` 
-  
+  ```
+
   Check if you received the ID on your email.
 
 - **Download Endpoint**
@@ -263,7 +275,7 @@ Run the application through the following API calls:
   ```
   ```console
    curl --output video.mp3 -X GET -H 'Authorization: Bearer <JWT Token>' "http://nodeIP:30002/download?fid=<Generated fid>"
-  ``` 
+  ```
 
 ## Destroying the Infrastructure
 

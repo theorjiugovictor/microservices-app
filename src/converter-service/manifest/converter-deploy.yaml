@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: converter
-          image: nasi101/converter
+          image: theorjiugovictor/converter-service
           envFrom:
             - configMapRef:
                 name: converter-configmap

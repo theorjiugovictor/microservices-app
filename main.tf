@@ -9,9 +9,9 @@ terraform {
 }
 terraform {
   backend "s3" {
-    bucket         = "your-terraform-state-bucket"
-    key            = "path/to/your/statefile.tfstate"
-    region         = "ap-south-1"
+    bucket         = "converter-app-state-bucket"
+    key            = "terraform/statefile.tfstate"
+    region = "us-east-1"
     encrypt        = true
     use_lockfile   = true
   }
@@ -97,7 +97,7 @@ module "vpc" {
   name = "eks-vpc"
   cidr = "10.0.0.0/16"
 
-  azs             = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 
@@ -108,8 +108,11 @@ module "vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
+  map_public_ip_on_launch = true
+
   public_subnet_tags = {
     "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/cluster/converter-app-eks-cluster" = "shared"
   }
 
   private_subnet_tags = {
@@ -122,13 +125,13 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 19.0"
 
-  cluster_name    = "Vid-Aud-eks-cluster"
-  cluster_version = "1.28"
+  cluster_name    = "converter-app-eks-cluster"
+  cluster_version = "1.32"
 
     iam_role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
+  subnet_ids = module.vpc.public_subnets
 
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
@@ -217,6 +220,27 @@ resource "aws_security_group_rule" "node_ingress_ssh" {
   type              = "ingress"
 }
 
+resource "aws_security_group_rule" "node_ingress_gateway" {
+  description       = "Allow Gateway NodePort ingress"
+  from_port         = 30002
+  to_port           = 30002
+  protocol          = "tcp"
+  security_group_id = module.eks.node_security_group_id
+  cidr_blocks       = ["0.0.0.0/0"]  # Consider restricting to your IP
+  type              = "ingress"
+}
+
+# Auth Service
+resource "aws_security_group_rule" "node_ingress_auth" {
+  description       = "Allow Auth Service ingress"
+  from_port         = 5000
+  to_port           = 5000
+  protocol          = "tcp"
+  security_group_id = module.eks.node_security_group_id
+  cidr_blocks       = ["0.0.0.0/0"]  # Consider restricting to internal VPC CIDR
+  type              = "ingress"
+}
+
 # Add these security group rules alongside your existing ones
 resource "aws_security_group_rule" "node_ingress_mongodb" {
   description       = "Allow MongoDB NodePort ingress"
@@ -232,6 +256,28 @@ resource "aws_security_group_rule" "node_ingress_postgresql" {
   description       = "Allow PostgreSQL NodePort ingress"
   from_port         = 30432
   to_port           = 30432
+  protocol          = "tcp"
+  security_group_id = module.eks.node_security_group_id
+  cidr_blocks       = ["0.0.0.0/0"]  # Consider restricting to your IP
+  type              = "ingress"
+}
+
+# RabbitMQ Management Console (NodePort)
+resource "aws_security_group_rule" "node_ingress_rabbitmq_management" {
+  description       = "Allow RabbitMQ Management Console NodePort ingress"
+  from_port         = 30004    # NodePort for management interface
+  to_port           = 30004
+  protocol          = "tcp"
+  security_group_id = module.eks.node_security_group_id
+  cidr_blocks       = ["0.0.0.0/0"]  # Consider restricting to your IP
+  type              = "ingress"
+}
+
+# RabbitMQ AMQP Protocol
+resource "aws_security_group_rule" "node_ingress_rabbitmq_amqp" {
+  description       = "Allow RabbitMQ AMQP protocol ingress"
+  from_port         = 31738
+  to_port           = 31738
   protocol          = "tcp"
   security_group_id = module.eks.node_security_group_id
   cidr_blocks       = ["0.0.0.0/0"]  # Consider restricting to your IP

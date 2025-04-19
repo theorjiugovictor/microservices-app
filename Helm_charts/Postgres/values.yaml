@@ -1,11 +1,11 @@
 service:
   name: db
   port: 5432
-  nodeport: 30003
+  nodeport: 30432
 
 container:
   image: postgres
   env:
-    user: nasi
-    password: cnd2023
+    user: prince
+    password: prince2025
     db: authdb
